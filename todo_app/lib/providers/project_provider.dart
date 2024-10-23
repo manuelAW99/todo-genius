@@ -3,51 +3,93 @@ import '/models/project.dart';
 import 'package:flutter/material.dart';
 
 class ProjectProvider with ChangeNotifier {
-  final SupabaseClient _supabaseClient = Supabase.instance.client;
+  final SupabaseClient supabaseClient;
   List<Project> _projects = [];
 
-  List<Project> get projects => _projects;
-  Future<void> createProject(Project project) async {
-    await _supabaseClient.from('projects').insert({
-      'name': project.name,
-      'description': project.description,
-      'isArchived': project.isArchived,
-      'ownerId': project.ownerId,
-      'memberIds': project.memberIds,
+  ProjectProvider(this.supabaseClient);
+
+  /// Returns a list of projects sorted by the project ID.
+  /// Projects that are archived are displayed at the end of the list.
+  /// @return A list of projects.
+  List<Project> get projects {
+    _projects.sort((a, b) {
+      if (a.isArchived == b.isArchived) {
+        return a.id!.compareTo(b.id!);
+      }
+      return a.isArchived ? 1 : -1;
     });
-    notifyListeners();
+    return _projects;
   }
 
-  Future<void> updateProject(Project project) async {
-    final response = await _supabaseClient.from('projects').update({
-      'name': project.name,
-      'description': project.description,
-      'isArchived': project.isArchived,
-      'memberIds': project.memberIds,
-    }).eq('id', project.id!);
-    if (response.error != null) {
-      print(response.error!.message);
+  /// Creates a new project in the database.
+  /// [project] The project object to be inserted into the database.
+  /// @return A boolean indicating whether the project was successfully created.
+  Future<bool> createProject(Project project) async {
+    try {
+      await supabaseClient.from('projects').insert(project.toMap());
+      notifyListeners();
+      return true;
+    } catch (error) {
+      return false;
     }
-    notifyListeners();
   }
 
-  Future<void> deleteProject(String projectId) async {
+  /// Updates an existing project in the database.
+  /// [project] The updated project object.
+  /// @return A boolean indicating whether the project was successfully updated.
+  Future<bool> updateProject(Project project) async {
+    try {
+      final response = await supabaseClient
+          .from('projects')
+          .update(project.toMap())
+          .eq('id', project.id!);
+      notifyListeners();
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /// Deletes a project from the database.
+  /// [projectId] The ID of the project to be deleted.
+  /// @return A boolean indicating whether the project was successfully deleted.
+  Future<void> deleteProject(int projectId) async {
     final response =
-        await _supabaseClient.from('projects').delete().eq('id', projectId);
-    if (response.error != null) {
-      print(response.error!.message);
-    }
+        await supabaseClient.from('projects').delete().eq('id', projectId);
     notifyListeners();
   }
 
+  /// Fetches projects for a specific user from the database.
+  /// [userId] The ID of the user whose projects are to be fetched.
+  /// @return A list of projects for the specified user.
   Future<List<Project>> getProjects(String userId) async {
-    final response = await _supabaseClient
-        .from('projects')
-        .select()
-        .eq('memberIds@>', [userId]);
-    _projects =
-        (response as List).map((data) => Project.fromMap(data)).toList();
-    notifyListeners();
-    return projects;
+    try {
+      final response = await supabaseClient
+          .from('projects')
+          .select()
+          .contains('memberIds', [userId]);
+      _projects =
+          (response as List).map((data) => Project.fromMap(data)).toList();
+      notifyListeners();
+      return projects;
+    } catch (error) {
+      return [];
+    }
+  }
+
+  /// Fetches a specific project by its ID from the database.
+  /// [projectId] The ID of the project to be fetched.
+  /// @return The project object with the specified ID.
+  Future<bool> updateProjectArchiveStatus(
+      int projectId, bool isArchived) async {
+    try {
+      await supabaseClient
+          .from('projects')
+          .update({'isArchived': isArchived}).eq('id', projectId);
+      notifyListeners();
+      return true;
+    } catch (error) {
+      return false;
+    }
   }
 }
