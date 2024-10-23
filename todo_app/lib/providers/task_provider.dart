@@ -54,10 +54,7 @@ class TaskProvider with ChangeNotifier {
   /// @return A boolean indicating whether the task was successfully updated.
   Future<bool> updateTask(int id, Task nuevaTask) async {
     try {
-      final response = await supabaseClient
-          .from('tasks')
-          .update(nuevaTask.toMap())
-          .eq('id', id);
+      await supabaseClient.from('tasks').update(nuevaTask.toMap()).eq('id', id);
       notifyListeners();
       return true;
     } catch (error) {

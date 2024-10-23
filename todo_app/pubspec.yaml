@@ -42,13 +42,13 @@ dependencies:
   image_picker: ^1.1.2
   intl: ^0.19.0
   flutter_localizations: 
-    sdk: flutter 
-
+    sdk: flutter
     
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_launcher_icons: "^0.14.1"
+  mockito: ^5.4.4
 
 flutter_launcher_icons:
   android: "launcher_icon"

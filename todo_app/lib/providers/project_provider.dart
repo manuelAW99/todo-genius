@@ -39,7 +39,7 @@ class ProjectProvider with ChangeNotifier {
   /// @return A boolean indicating whether the project was successfully updated.
   Future<bool> updateProject(Project project) async {
     try {
-      final response = await supabaseClient
+      await supabaseClient
           .from('projects')
           .update(project.toMap())
           .eq('id', project.id!);
@@ -54,8 +54,7 @@ class ProjectProvider with ChangeNotifier {
   /// [projectId] The ID of the project to be deleted.
   /// @return A boolean indicating whether the project was successfully deleted.
   Future<void> deleteProject(int projectId) async {
-    final response =
-        await supabaseClient.from('projects').delete().eq('id', projectId);
+    await supabaseClient.from('projects').delete().eq('id', projectId);
     notifyListeners();
   }
 
