@@ -1,3 +1,5 @@
+/// Project model class.
+/// Used to store project information.
 class Project {
   int? id;
   Object? createdAt;
@@ -17,6 +19,8 @@ class Project {
     required this.memberIds,
   });
 
+  /// Convert a map to a project object.
+  /// The map is used to store the project in the database.
   factory Project.fromMap(Map<String, dynamic> data) {
     return Project(
       id: data['id'],
@@ -29,6 +33,8 @@ class Project {
     );
   }
 
+  /// Convert a project object to a map.
+  /// The map is used to store the project in the database.
   Map<String, dynamic> toMap() {
     return {
       'name': name,
@@ -39,3 +45,15 @@ class Project {
     };
   }
 }
+
+/// An empty project object.
+/// Used to check if the user has a project or not.
+Project emptyProject = Project(
+  id: -1,
+  name: '',
+  createdAt: '',
+  description: '',
+  ownerId: '',
+  memberIds: [],
+  isArchived: false,
+);
