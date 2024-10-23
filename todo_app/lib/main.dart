@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 import '/providers/project_provider.dart';
 import '/providers/task_provider.dart';
 import '/providers/profile_provider.dart';
-import 'package:uuid/uuid.dart';
 
 Future<void> main() async {
   await Supabase.initialize(
@@ -18,7 +17,6 @@ Future<void> main() async {
 }
 
 final supabase = Supabase.instance.client;
-const uuid = Uuid();
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -27,23 +25,30 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
         providers: [
-          ChangeNotifierProvider(create: (_) => ProfileProvider()),
-          ChangeNotifierProvider(create: (_) => ProjectProvider()),
-          ChangeNotifierProvider(create: (_) => TaskProvider()),
+          ChangeNotifierProvider(create: (_) => ProfileProvider(supabase)),
+          ChangeNotifierProvider(create: (_) => ProjectProvider(supabase)),
+          ChangeNotifierProvider(create: (_) => TaskProvider(supabase)),
         ],
         child: MaterialApp(
-          title: 'ToDo-Genius',
+          debugShowCheckedModeBanner: false,
+          title: 'Pro-Genius',
           theme: ThemeData.dark().copyWith(
-            primaryColor: Colors.green,
+            primaryColor: Colors.blueAccent,
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
-                foregroundColor: Colors.green,
+                foregroundColor: Colors.blueAccent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
             elevatedButtonTheme: ElevatedButtonThemeData(
               style: ElevatedButton.styleFrom(
                 foregroundColor: Colors.white,
-                backgroundColor: Colors.green,
+                backgroundColor: Colors.blueAccent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
           ),

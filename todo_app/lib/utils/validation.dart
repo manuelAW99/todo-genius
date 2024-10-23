@@ -1,3 +1,12 @@
+final correctText = {
+  "inProgress": "In Progress",
+  "completed": "Completed",
+  "pending": "Pending",
+  "low": "Low",
+  "medium": "Medium",
+  "high": "High",
+};
+
 String? validateEmail(String? value) {
   if (value == null || value.isEmpty) {
     return 'Email cannot be empty';
@@ -20,7 +29,7 @@ String? validatePassword(String? value) {
 }
 
 String? validateName(String? value) {
-  if (value == null || value.isEmpty) {
+  if (value == null || value.isEmpty || value.trim().isEmpty) {
     return 'Name cannot be empty';
   }
   return null;
