@@ -13,12 +13,11 @@ class AccountPage extends StatefulWidget {
 
 class _AccountPageState extends State<AccountPage> {
   final _usernameController = TextEditingController();
-  final _websiteController = TextEditingController();
-
+  final _emailController = TextEditingController();
   String? _avatarUrl;
   var _loading = true;
 
-  /// Called once a user id is received within `onAuthenticated()`
+  /// Fetches the profile of the current user
   Future<void> _getProfile() async {
     setState(() {
       _loading = true;
@@ -29,7 +28,6 @@ class _AccountPageState extends State<AccountPage> {
       final data =
           await supabase.from('profiles').select().eq('id', userId).single();
       _usernameController.text = (data['username'] ?? '') as String;
-      _websiteController.text = (data['website'] ?? '') as String;
       _avatarUrl = (data['avatar_url'] ?? '') as String;
     } on PostgrestException catch (error) {
       if (mounted) context.showSnackBar(error.message, isError: true);
@@ -47,17 +45,22 @@ class _AccountPageState extends State<AccountPage> {
   }
 
   /// Called when user taps `Update` button
+  /// Updates the profile with the new username
+  /// Shows a snackbar if an error occurs
+  /// Shows a snackbar if the update is successful
+  /// Sets the loading state to false after the operation
+  /// If the user is already signed out, navigates to the login page
+  /// without showing any snackbar
   Future<void> _updateProfile() async {
     setState(() {
       _loading = true;
     });
     final userName = _usernameController.text.trim();
-    final website = _websiteController.text.trim();
     final user = supabase.auth.currentUser;
     final updates = {
       'id': user!.id,
       'username': userName,
-      'website': website,
+      'email': user.email,
       'updated_at': DateTime.now().toIso8601String(),
     };
     try {
@@ -78,6 +81,13 @@ class _AccountPageState extends State<AccountPage> {
     }
   }
 
+  /// Called when user taps `SignOut` button
+  /// Signs out the user and navigates to the login page
+  /// Shows a snackbar if an error occurs
+  /// Shows a snackbar if the signout is successful
+  ///
+  /// If the user is already signed out, navigates to the login page
+  /// without showing any snackbar
   Future<void> _signOut() async {
     try {
       await supabase.auth.signOut();
@@ -96,7 +106,10 @@ class _AccountPageState extends State<AccountPage> {
     }
   }
 
-  /// Called when image has been uploaded to Supabase storage from within Avatar widget
+  /// Called when user uploads a new avatar
+  /// Updates the profile with the new avatar URL
+  /// and updates the local state
+  /// [imageUrl] is the URL of the uploaded image
   Future<void> _onUpload(String imageUrl) async {
     try {
       final userId = supabase.auth.currentUser!.id;
@@ -134,12 +147,13 @@ class _AccountPageState extends State<AccountPage> {
   @override
   void dispose() {
     _usernameController.dispose();
-    _websiteController.dispose();
+    _emailController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final user = supabase.auth.currentUser;
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
       body: ListView(
@@ -155,17 +169,14 @@ class _AccountPageState extends State<AccountPage> {
             decoration: const InputDecoration(labelText: 'User Name'),
           ),
           const SizedBox(height: 18),
-          TextFormField(
-            controller: _websiteController,
-            decoration: const InputDecoration(labelText: 'Website'),
-          ),
+          Text("Email: ${user!.email!}"),
           const SizedBox(height: 18),
           ElevatedButton(
             onPressed: _loading ? null : _updateProfile,
             child: Text(_loading ? 'Saving...' : 'Update'),
           ),
           const SizedBox(height: 18),
-          TextButton(onPressed: _signOut, child: const Text('Sign Out')),
+          TextButton(onPressed: _signOut, child: const Text(('SignOut'))),
         ],
       ),
     );
