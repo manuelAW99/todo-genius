@@ -46,3 +46,6 @@ app.*.map.json
 /web
 /windows
 /ios
+
+# Environment variables
+.env
