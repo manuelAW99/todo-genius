@@ -9,88 +9,87 @@ class ProjectsPage extends StatefulWidget {
   const ProjectsPage({super.key});
 
   @override
-  _ProjectsPageState createState() => _ProjectsPageState();
+  ProjectsPageState createState() => ProjectsPageState();
 }
 
-class _ProjectsPageState extends State<ProjectsPage> {
+class ProjectsPageState extends State<ProjectsPage> {
   late Future<void> _projectsFuture;
   final userId = supabase.auth.currentUser!.id;
   @override
   void initState() {
     super.initState();
-    _projectsFuture = _fetchProjects();
+    _projectsFuture = _fetchProjectsPP();
   }
 
-  Future<void> _fetchProjects() async {
+  /// Fetches the projects of the current user
+  Future<void> _fetchProjectsPP() async {
     final projectsProvider =
         Provider.of<ProjectProvider>(context, listen: false);
     await projectsProvider.getProjects(userId);
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final projectsProvider = Provider.of<ProjectProvider>(context);
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Projects'),
-      ),
-      body: RefreshIndicator(
-        onRefresh: _fetchProjects,
-        child: FutureBuilder(
-          future: _projectsFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              print("Loading projects...");
-              return const Center(child: CircularProgressIndicator());
-            } else if (snapshot.hasError) {
-              print("Error loading projects: ${snapshot.error}");
-              return const Center(child: Text('Failed to load tasks'));
-            }
-            print("Projects loaded!");
-            return ListView.builder(
-              itemCount: projectsProvider.projects.length +
-                  1, // Add one for the "+" button
-              itemBuilder: (context, index) {
-                if (index == projectsProvider.projects.length) {
-                  return ListTile(
-                    title: const Center(
-                      child: Icon(Icons.add, size: 40),
-                    ),
-                    onTap: () {
-                      _showCreateProjectForm(context, userId);
-                    },
-                  );
-                }
-                final project = projectsProvider.projects[index];
-                return Container(
-                  margin:
-                      const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                  decoration: BoxDecoration(
-                      color: const Color.fromARGB(87, 3, 2, 73),
-                      border: Border.all(color: Colors.grey)),
-                  child: ListTile(
-                    title: Text(project.name),
-                    subtitle: Text(project.description),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              ProjectPage(projectId: project.id!),
-                        ),
-                      );
-                    },
-                  ),
-                );
+  /// Shows a dialog to confirm archiving or unarchiving a project
+  /// If the user confirms, the project will be archived or unarchived
+  /// If the user cancels, the dialog will be dismissed
+  /// After the operation, the projects will be fetched again
+  /// to reflect the changes
+  /// If the user is not the owner of the project, a snackbar will be displayed
+  /// indicating that the user does not have permission to archive the project
+  /// If the user is the owner of the project, the project will be archived or unarchived
+  /// based on the current status
+  /// If the project is archived, the project will be unarchived
+  /// If the project is unarchived, the project will be archived
+  /// The project will be updated in the database
+  /// The projects will be fetched again to reflect the changes
+  /// The dialog will be dismissed
+  /// If the user is not the owner of the project, a snackbar will be displayed
+  /// indicating that the user does not have permission to archive the project
+  /// If the user is the owner of the project, the project will be archived or unarchived
+  /// based on the current status
+  /// The project will be updated in the database
+  /// The projects will be fetched again to reflect the changes
+  /// The dialog will be dismissed
+  void _showArchiveProjectDialog(
+      BuildContext context, int projectId, bool isArchived) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(isArchived ? 'Unarchive Project' : 'Archive Project'),
+          content: Text(isArchived
+              ? 'Are you sure you want to unarchive this project?'
+              : 'Are you sure you want to archive this project?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
               },
-            );
-          },
-        ),
-      ),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                final projectsProvider =
+                    Provider.of<ProjectProvider>(context, listen: false);
+                await projectsProvider.updateProjectArchiveStatus(
+                    projectId, !isArchived);
+                _fetchProjectsPP();
+                Navigator.of(context).pop();
+              },
+              child: Text(isArchived ? 'Unarchive' : 'Archive'),
+            ),
+          ],
+        );
+      },
     );
   }
 
+  /// Shows a dialog to create a new project
+  /// The user will be able to enter the project name and description
+  /// If the user enters a name and description, the project will be created
+  /// The project will be added to the database
+  /// The projects will be fetched again to reflect the changes
+  /// The dialog will be dismissed
+  /// If the user does not enter a name or description, the project will not be created
   void _showCreateProjectForm(BuildContext context, String userId) {
     showModalBottomSheet(
       context: context,
@@ -108,8 +107,8 @@ class _ProjectsPageState extends State<ProjectsPage> {
             right: 16,
             top: 16,
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+          child: ListView(
+            shrinkWrap: true,
             children: [
               TextField(
                 controller: nameController,
@@ -126,7 +125,6 @@ class _ProjectsPageState extends State<ProjectsPage> {
                   final name = nameController.text.trim();
                   final description = descriptionController.text.trim();
                   if (name.isNotEmpty && description.isNotEmpty) {
-                    print("Creating project...");
                     final newProject = Project(
                       name: name,
                       description: description,
@@ -135,8 +133,7 @@ class _ProjectsPageState extends State<ProjectsPage> {
                       memberIds: [userId],
                     );
                     await projectsProvider.createProject(newProject);
-                    print("Project created!");
-                    _fetchProjects();
+                    _fetchProjectsPP();
                     Navigator.of(context).pop();
                   }
                 },
@@ -146,6 +143,88 @@ class _ProjectsPageState extends State<ProjectsPage> {
           ),
         );
       },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final projectsProvider = Provider.of<ProjectProvider>(context);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('My Projects'),
+      ),
+      body: RefreshIndicator(
+        onRefresh: _fetchProjectsPP,
+        child: FutureBuilder(
+          future: _projectsFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return const Center(child: Text('Failed to load tasks'));
+            }
+            return ListView.builder(
+              padding: const EdgeInsets.all(8),
+              itemCount: projectsProvider.projects.length +
+                  1, // Add one for the "+" button
+              itemBuilder: (context, index) {
+                if (index == projectsProvider.projects.length) {
+                  return ListTile(
+                    title: const Center(
+                      child: Icon(Icons.add, size: 40),
+                    ),
+                    onTap: () {
+                      _showCreateProjectForm(context, userId);
+                    },
+                  );
+                }
+                final project = projectsProvider.projects[index];
+                return Container(
+                  margin:
+                      const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+                  decoration: BoxDecoration(
+                      color: project.isArchived
+                          ? Colors.blueGrey
+                          : Theme.of(context).primaryColor,
+                      border: const Border(
+                          left: BorderSide(width: 4.0, color: Colors.grey),
+                          right: BorderSide(width: 4.0, color: Colors.grey)),
+                      borderRadius: BorderRadius.circular(20)),
+                  child: ListTile(
+                    title: Text(
+                      project.name,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    subtitle: Text(project.description),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ProjectPage(project: project),
+                        ),
+                      );
+                    },
+                    onLongPress: () {
+                      if (project.ownerId == userId) {
+                        _showArchiveProjectDialog(
+                            context, project.id!, project.isArchived);
+                      } else {
+                        context.showSnackBar(
+                            'You do not have permission to delete this project.',
+                            isError: true);
+                      }
+                    },
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      ),
     );
   }
 }
